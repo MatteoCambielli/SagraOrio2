@@ -3,10 +3,8 @@ const { createApp, ref, computed, onMounted } = Vue;
 createApp({
     setup() {
         // AUTENTICAZIONE E SICUREZZA (PIN protetto tramite Hash SHA-256)
-        // Questo è l'hash preciso, sicuro e veritiero per il PIN 26863
         const HASH_PIN_SEGRETO = "733e2e8f73ee533dd089153d8cba34ca70875156bc6b7aebdb84456dabc4c347";
         
-        // Sostituito localStorage con sessionStorage: se si chiude la scheda o si riapre il sito, richiederà SEMPRE il PIN
         const isAuthenticated = ref(sessionStorage.getItem('sagra_auth') === 'true');
         const pinInput = ref('');
         const loginError = ref(false);
@@ -49,9 +47,8 @@ createApp({
             setTimeout(() => { toastMsg.value = ''; }, 2200);
         }
 
-        // Funzione asincrona per generare l'hash del PIN inserito
+        // Calcola SHA-256 del PIN
         async function calcolaSHA256(stringa) {
-            // Forza l'input in formato testuale pulito per evitare disallineamenti di tipo numerico
             const testoPuro = String(stringa).trim();
             const msgBuffer = new TextEncoder().encode(testoPuro);                    
             const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);       
@@ -59,9 +56,7 @@ createApp({
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');  
         }
 
-        // ==========================================
-        // CARICAMENTO E SINCRONIZZAZIONE SUPABASE
-        // ==========================================
+        // Mappatura dati da database
         function mappaOrdini(databaseData) {
             return databaseData.map(o => ({
                 id: o.id,
@@ -72,10 +67,11 @@ createApp({
                 pagato: o.pagato,
                 cucinaCompletata: o.cucina_completata, 
                 note: o.note,
-                piatti: o.piatti
+                piatti: o.piatti // Ogni elemento del carrello contiene la proprietà 'categoria'
             }));
         }
 
+        // Caricamento del listino da Supabase
         async function fetchMenu() {
             try {
                 const { data: catData, error: catErr } = await supabaseClient
@@ -103,7 +99,8 @@ createApp({
                         menuStrutturato[p.categoria].push({
                             id: p.id,
                             nome: p.nome,
-                            prezzo: parseFloat(p.prezzo)
+                            prezzo: parseFloat(p.prezzo),
+                            categoria: p.categoria // Assicura che la categoria segua il piatto nel carrello
                         });
                     }
                 });
@@ -119,6 +116,7 @@ createApp({
             }
         }
 
+        // Caricamento degli ordini
         async function fetchOrdini() {
             try {
                 const { data, error } = await supabaseClient
@@ -133,9 +131,7 @@ createApp({
             }
         }
 
-        // ==========================================
-        // AUTO-AGGIORNAMENTO IN TEMPO REALE (REALTIME)
-        // ==========================================
+        // Sincronizzazione Realtime
         function attivaRealtime() {
             supabaseClient
                 .channel('sagra_realtime_globale')
@@ -148,9 +144,7 @@ createApp({
         }
 
         onMounted(() => {
-            // Rimuove eventuali residui del vecchio localStorage se presenti nel browser
             localStorage.removeItem('sagra_auth');
-            
             if (isAuthenticated.value) {
                 fetchMenu();
                 fetchOrdini();
@@ -158,16 +152,12 @@ createApp({
             }
         });
 
-        // GESTIONE LOGIN CON CONFRONTO HASH PROTETTO
         async function handleLogin() {
             if (!pinInput.value) return;
-
             try {
                 const hashInserito = await calcolaSHA256(pinInput.value);
-                
                 if (hashInserito === HASH_PIN_SEGRETO) { 
                     isAuthenticated.value = true;
-                    // Salvataggio agganciato alla sessione volatile
                     sessionStorage.setItem('sagra_auth', 'true');
                     loginError.value = false;
                     fetchMenu();
@@ -187,14 +177,11 @@ createApp({
         function logout() {
             isAuthenticated.value = false;
             sessionStorage.removeItem('sagra_auth');
-            localStorage.removeItem('sagra_auth');
             currentView.value = 'dashboard';
             supabaseClient.removeAllChannels();
         }
 
-        // ==========================================
-        // OPERAZIONI DATABASE - GESTIONE LISTINO
-        // ==========================================
+        // Gestione Categorie Listino
         async function aggiungiCategoria() {
             const nome = nuovaCategoriaInput.value.trim();
             if (!nome) return;
@@ -224,6 +211,7 @@ createApp({
             }
         }
 
+        // Gestione inserimento piatti nel listino
         async function aggiungiAAListino() {
             if (!nuovoPiattoListino.value.nome || !nuovoPiattoListino.value.categoria) return;
             try {
@@ -251,9 +239,7 @@ createApp({
             }
         }
 
-        // ==========================================
-        // OPERAZIONI DATABASE - GESTIONE COMANDE
-        // ==========================================
+        // Invio Comanda al Database
         async function inviaOrdine() {
             if (!nuovoOrdine.value.tavolo) {
                 alert("Riempi il numero di tavolo!");
@@ -307,9 +293,7 @@ createApp({
             }
         }
 
-        // ==========================================
-        // LOGICA INTERFACCIA CARRELLO (LOCALE)
-        // ==========================================
+        // Operazioni Locali Carrello
         function apriModalMenu() {
             if (elencoCategorie.value.length === 0) {
                 alert("Crea prima almeno una categoria nella scheda 'Configura Listino'!");
@@ -323,7 +307,12 @@ createApp({
 
         function aggiungiAlCarrello(piatto) {
             const esistente = nuovoOrdine.value.carrello.find(item => item.id === piatto.id);
-            if (esistente) { esistente.qta++; } else { nuovoOrdine.value.carrello.push({ ...piatto, qta: 1 }); }
+            if (esistente) { 
+                esistente.qta++; 
+            } else { 
+                // iniettiamo anche la categoria nell'elemento del carrello
+                nuovoOrdine.value.carrello.push({ ...piatto, qta: 1 }); 
+            }
         }
 
         function rimuoviDalCarrello(piatto) {
@@ -345,16 +334,13 @@ createApp({
             return nuovoOrdine.value.carrello.reduce((acc, item) => acc + (item.prezzo * item.qta), 0);
         });
 
-        // ==========================================
-        // FILTRI E STATISTICHE REATTIVE
-        // ==========================================
+        // FILTRI E STATISTICHE COMPUTES
         const ordiniDiOggi = computed(() => ordini.value.filter(o => o.data === getOggi()));
         const incassoTotaleOggi = computed(() => ordiniDiOggi.value.filter(o => o.pagato).reduce((sum, o) => sum + o.totale, 0));
         const ordiniStoricoFiltrati = computed(() => ordini.value.filter(o => o.data === filtroDataStorico.value));
-        const ordiniInCucina = computed(() => ordiniDiOggi.value.filter(o => !o.cucinaCompletata));
         const ordiniDaPagare = computed(() => ordiniDiOggi.value.filter(o => !o.pagato));
 
-        // Filtro purificato dello Schermo Cucina (Esclude bevande)
+        // Schermo Cucina: Filtra i tavoli che hanno almeno un cibo
         const comandeSoloCucina = computed(() => {
             return ordiniDiOggi.value
                 .filter(o => !o.cucinaCompletata)
@@ -365,7 +351,7 @@ createApp({
                 .filter(o => o.piatti.length > 0);
         });
 
-        // Filtro purificato dello Schermo Bere (Include SOLO bevande)
+        // Schermo Bere: Filtra i tavoli che hanno almeno una bevanda
         const comandeSoloBere = computed(() => {
             return ordiniDiOggi.value
                 .filter(o => !o.cucinaCompletata)
@@ -380,7 +366,7 @@ createApp({
             isAuthenticated, pinInput, loginError, handleLogin, logout,
             currentView, viewTitles, menu, nuovoOrdine, ordini,
             aggiungiAlCarrello, rimuoviDalCarrello, totaleCarrello, inviaOrdine,
-            ordiniInCucina, ordiniDaPagare, evadiCucina, incassaConto, incassoTotaleOggi, ordiniDiOggi,
+            ordiniDaPagare, evadiCucina, incassaConto, incassoTotaleOggi, ordiniDiOggi,
             nuovoPiattoListino, aggiungiAAListino, rimuoviDaListino,
             isMenuModalOpen, modalCategoriaAttiva, quantitaNelCarrello, apriModalMenu,
             filtroDataStorico, ordiniStoricoFiltrati, toastMsg,
