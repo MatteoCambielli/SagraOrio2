@@ -21,6 +21,7 @@
 
     <div id="app" v-cloak>
         
+        <!-- SCHERMATA DI LOGIN -->
         <div v-if="!isAuthenticated" class="min-h-screen flex items-center justify-center p-4 bg-slate-900">
             <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-sm text-center">
                 <div class="text-indigo-600 text-5xl mb-4"><i class="fa-solid fa-mobile-screen-button"></i></div>
@@ -42,6 +43,7 @@
             </div>
         </div>
 
+        <!-- APPLICAZIONE REALE -->
         <div v-else class="min-h-screen flex flex-col">
             <header class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center sticky top-0 z-40 shadow-sm">
                 <div class="flex items-center gap-3">
@@ -57,10 +59,12 @@
 
             <main class="flex-1 p-4 max-w-7xl mx-auto w-full">
 
+                <!-- TOAST DI NOTIFICA -->
                 <div v-if="toastMsg" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-4 py-2 rounded-full shadow-lg font-bold text-sm flex items-center gap-2 animate-bounce">
                     <i class="fa-solid fa-circle-check"></i> {{ toastMsg }}
                 </div>
 
+                <!-- PANNELLO PRINCIPALE (DASHBOARD) -->
                 <div v-if="currentView === 'dashboard'" class="space-y-6">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
@@ -121,6 +125,7 @@
                     </div>
                 </div>
 
+                <!-- INTERFACCIA: CREA NUOVO ORDINE -->
                 <div v-if="currentView === 'nuovo-ordine'" class="space-y-4 max-w-xl mx-auto">
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex gap-3">
                         <div class="w-1/3">
@@ -169,6 +174,7 @@
                     </div>
                 </div>
 
+                <!-- MODAL SELEZIONE MENU -->
                 <div v-if="isMenuModalOpen" class="fixed inset-0 bg-slate-900/60 z-50 flex items-end sm:items-center justify-center backdrop-blur-sm p-0 sm:p-4">
                     <div class="bg-white w-full h-[85vh] sm:max-w-2xl sm:h-[75vh] rounded-t-3xl sm:rounded-3xl flex flex-col overflow-hidden shadow-2xl hash-modal animate-[slideUp_0.2s_ease-out]">
                         <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-white z-10 shadow-sm">
@@ -220,6 +226,7 @@
                     </div>
                 </div>
 
+                <!-- INTERFACCIA: STORICO ARCHIVIO COMANDATI -->
                 <div v-if="currentView === 'storico'" class="space-y-4 max-w-xl mx-auto">
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2">Seleziona Giorno Archivio</label>
@@ -256,6 +263,7 @@
                     </div>
                 </div>
 
+                <!-- INTERFACCIA: MONITOR CUCINA (ESCLUDE LE BEVANDE) -->
                 <div v-if="currentView === 'cucina'" class="space-y-4">
                     <div v-if="comandeSoloCucina.length === 0" class="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 shadow-sm max-w-md mx-auto">
                         <i class="fa-solid fa-mug-hot text-5xl text-emerald-400 mb-3 block"></i>
@@ -271,10 +279,13 @@
                                     <span class="text-xs font-bold bg-white text-amber-800 px-2 py-0.5 rounded shadow-sm">{{ ordine.orario }}</span>
                                 </div>
                                 <div class="p-4 space-y-2.5">
-                                    <div v-for="piatto in ordine.piatti" class="flex items-start gap-2.5 border-b border-slate-100 pb-2">
-                                        <span class="bg-amber-500 text-white font-black text-sm w-7 h-7 rounded-lg flex items-center justify-center shrink-0">{{ piatto.qta }}</span>
-                                        <span class="text-slate-800 font-bold text-base leading-tight mt-0.5">{{ piatto.nome }}</span>
-                                    </div>
+                                    <!-- template condizionale: stampa solo se NON è bere -->
+                                    <template v-for="piatto in ordine.piatti" :key="piatto.id">
+                                        <div v-if="piatto.categoria !== 'Bere' && piatto.categoria !== 'Bevande'" class="flex items-start gap-2.5 border-b border-slate-100 pb-2">
+                                            <span class="bg-amber-500 text-white font-black text-sm w-7 h-7 rounded-lg flex items-center justify-center shrink-0">{{ piatto.qta }}</span>
+                                            <span class="text-slate-800 font-bold text-base leading-tight mt-0.5">{{ piatto.nome }}</span>
+                                        </div>
+                                    </template>
                                     <div v-if="ordine.note" class="mt-2 bg-red-50 p-2.5 rounded-xl text-xs font-bold text-red-700 border border-red-100"><i class="fa-solid fa-triangle-exclamation mr-1"></i> {{ ordine.note }}</div>
                                 </div>
                             </div>
@@ -285,6 +296,7 @@
                     </div>
                 </div>
 
+                <!-- INTERFACCIA: MONITOR BEVANDE (MOSTRA SOLO LE BEVANDE) -->
                 <div v-if="currentView === 'ordinazioni-bere'" class="space-y-4">
                     <div v-if="comandeSoloBere.length === 0" class="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 shadow-sm max-w-md mx-auto">
                         <i class="fa-solid fa-glass-water text-5xl text-blue-400 mb-3 block"></i>
@@ -300,10 +312,13 @@
                                     <span class="text-xs font-bold bg-white text-blue-800 px-2 py-0.5 rounded shadow-sm">{{ ordine.orario }}</span>
                                 </div>
                                 <div class="p-4 space-y-2.5">
-                                    <div v-for="piatto in ordine.piatti" class="flex items-start gap-2.5 border-b border-slate-100 pb-2">
-                                        <span class="bg-blue-500 text-white font-black text-sm w-7 h-7 rounded-lg flex items-center justify-center shrink-0">{{ piatto.qta }}</span>
-                                        <span class="text-slate-800 font-bold text-base leading-tight mt-0.5">{{ piatto.nome }}</span>
-                                    </div>
+                                    <!-- template condizionale: stampa SOLO se è bere o bevande -->
+                                    <template v-for="piatto in ordine.piatti" :key="piatto.id">
+                                        <div v-if="piatto.categoria === 'Bere' || piatto.categoria === 'Bevande'" class="flex items-start gap-2.5 border-b border-slate-100 pb-2">
+                                            <span class="bg-blue-500 text-white font-black text-sm w-7 h-7 rounded-lg flex items-center justify-center shrink-0">{{ piatto.qta }}</span>
+                                            <span class="text-slate-800 font-bold text-base leading-tight mt-0.5">{{ piatto.nome }}</span>
+                                        </div>
+                                    </template>
                                     <div v-if="ordine.note" class="mt-2 bg-red-50 p-2.5 rounded-xl text-xs font-bold text-red-700 border border-red-100"><i class="fa-solid fa-triangle-exclamation mr-1"></i> {{ ordine.note }}</div>
                                 </div>
                             </div>
@@ -314,6 +329,7 @@
                     </div>
                 </div>
 
+                <!-- INTERFACCIA: PUNTO CASSA E INCASSI -->
                 <div v-if="currentView === 'cassa'" class="space-y-4">
                     <div v-if="ordiniDaPagare.length === 0" class="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 shadow-sm max-w-md mx-auto">
                         <i class="fa-solid fa-coins text-5xl text-slate-300 mb-3 block"></i>
@@ -330,7 +346,7 @@
                                     </span>
                                 </div>
                                 <div class="space-y-1 text-xs mb-3">
-                                    <div v-for="p in ordine.piatti" class="flex justify-between text-slate-600 font-medium">
+                                    <div v-for="p in ordine.piatti" :key="p.id" class="flex justify-between text-slate-600 font-medium">
                                         <span>{{ p.qta }}x {{ p.nome }}</span>
                                         <span>€ {{ (p.prezzo * p.qta).toFixed(2) }}</span>
                                     </div>
@@ -348,6 +364,7 @@
                     </div>
                 </div>
 
+                <!-- INTERFACCIA: CONFIGURAZIONE LISTINO -->
                 <div v-if="currentView === 'menu-manager'" class="space-y-5 max-w-2xl mx-auto">
                     
                     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
@@ -383,7 +400,7 @@
                         </div>
                         <div class="space-y-2.5">
                             <div v-if="piatti.length === 0" class="text-slate-400 text-xs italic py-2">
-                                Categoria vuota. Aggiungi un piatto qui sopra selezionando "{{ cat }}".
+                                Categoria vuota. Aggiungi un piatto hier sopra selezionando "{{ cat }}".
                             </div>
                             <div v-for="piatto in piatti" :key="piatto.id" class="flex justify-between items-center py-1">
                                 <span class="font-semibold text-sm text-slate-800">{{ piatto.nome }}</span>
