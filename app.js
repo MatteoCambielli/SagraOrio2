@@ -58,18 +58,22 @@ createApp({
 
         // Mappatura dati da database
         function mappaOrdini(databaseData) {
-            return databaseData.map(o => ({
-                id: o.id,
-                tavolo: o.tavolo,
-                data: o.data,
-                orario: o.orario,
-                totale: parseFloat(o.totale),
-                pagato: o.pagato,
-                cucinaCompletata: o.cucina_completata, 
-                note: o.note,
-                piatti: o.piatti // Ogni elemento del carrello contiene la proprietà 'categoria'
-            }));
-        }
+    return databaseData.map(o => ({
+        id: o.id,
+        tavolo: o.tavolo,
+        data: o.data,
+        orario: o.orario,
+        totale: parseFloat(o.totale),
+        pagato: o.pagato,
+
+        // 🔥 SEPARATI
+        cucinaCompletata: o.cucina_completata,
+        barCompletato: o.bar_completato,
+
+        note: o.note,
+        piatti: o.piatti
+    }));
+}
 
         // Caricamento del listino da Supabase
         async function fetchMenu() {
@@ -274,14 +278,34 @@ createApp({
         }
 
         async function evadiCucina(ordine) {
-            try {
-                const { error } = await supabaseClient.from('ordini').update({ cucina_completata: true }).eq('id', ordine.id);
-                if (error) throw error;
-                showToast(`Tavolo ${ordine.tavolo} completato!`);
-            } catch (err) {
-                alert("Errore modifica stato: " + err.message);
-            }
-        }
+    try {
+        const { error } = await supabaseClient
+            .from('ordini')
+            .update({ cucina_completata: true })
+            .eq('id', ordine.id);
+
+        if (error) throw error;
+
+        showToast(`Cucina Tavolo ${ordine.tavolo} completata!`);
+    } catch (err) {
+        alert(err.message);
+    }
+}
+
+async function evadiBar(ordine) {
+    try {
+        const { error } = await supabaseClient
+            .from('ordini')
+            .update({ bar_completato: true })
+            .eq('id', ordine.id);
+
+        if (error) throw error;
+
+        showToast(`Bar Tavolo ${ordine.tavolo} completato!`);
+    } catch (err) {
+        alert(err.message);
+    }
+}
 
         async function incassaConto(ordine) {
             try {
@@ -342,25 +366,36 @@ createApp({
 
         // Schermo Cucina: Filtra i tavoli che hanno almeno un cibo
         const comandeSoloCucina = computed(() => {
-            return ordiniDiOggi.value
-                .filter(o => !o.cucinaCompletata)
-                .map(o => {
-                    const piattiFiltrati = o.piatti.filter(p => p.categoria !== 'Bere' && p.categoria !== 'Bevande');
-                    return { ...o, piatti: piattiFiltrati };
-                })
-                .filter(o => o.piatti.length > 0);
-        });
+    return ordiniDiOggi.value
+        .map(o => {
+            const piattiCucina = o.piatti.filter(
+                p => p.categoria !== 'Bevande'
+            );
 
-        // Schermo Bere: Filtra i tavoli che hanno almeno una bevanda
+            return {
+                ...o,
+                piatti: piattiCucina,
+                cucinaGiaFatta: o.cucinaCompletata
+            };
+        })
+        .filter(o => o.piatti.length > 0);
+});
+
         const comandeSoloBere = computed(() => {
-            return ordiniDiOggi.value
-                .filter(o => !o.cucinaCompletata)
-                .map(o => {
-                    const bereFiltrato = o.piatti.filter(p => p.categoria === 'Bere' || p.categoria === 'Bevande');
-                    return { ...o, piatti: bereFiltrato };
-                })
-                .filter(o => o.piatti.length > 0);
-        });
+    return ordiniDiOggi.value
+        .map(o => {
+            const bevande = o.piatti.filter(
+                p => p.categoria === 'Bevande'
+            );
+
+            return {
+                ...o,
+                piatti: bevande,
+                barGiaFatto: o.barCompletato
+            };
+        })
+        .filter(o => o.piatti.length > 0);
+});
 
         return {
             isAuthenticated, pinInput, loginError, handleLogin, logout,
