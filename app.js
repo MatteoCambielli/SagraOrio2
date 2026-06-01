@@ -122,7 +122,7 @@ createApp({
                 const { data, error } = await supabaseClient
                     .from('ordini')
                     .select('*')
-                    .order('id', { ascending: false });
+                    .order('id', { ascending: true });
                 
                 if (error) throw error;
                 ordini.value = mappaOrdini(data);
