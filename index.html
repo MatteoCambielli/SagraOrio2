@@ -271,8 +271,10 @@
                         <p class="text-xs mt-1 text-slate-400">In attesa di nuove comande culinarie dai tavoli.</p>
                     </div>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        <div v-for="ordine in comandeSoloCucina" :key="ordine.id" class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between h-fit">
+                    <div class="flex overflow-x-auto gap-4 pb-2">
+                        <div v-for="ordine in comandeSoloCucina"
+     :key="ordine.id"
+     class="min-w-[300px] max-w-[300px] bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between">
                             <div>
                                 <div class="bg-amber-100/60 px-4 py-3 border-b border-amber-200 flex justify-between items-center">
                                     <span class="font-black text-xl text-amber-900">Tavolo {{ ordine.tavolo }}</span>
@@ -304,7 +306,7 @@
                         <p class="text-xs mt-1 text-slate-400">Nessun bicchiere o bottiglia in attesa al bar.</p>
                     </div>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div class="flex overflow-x-auto gap-4 pb-2">
                         <div v-for="ordine in comandeSoloBere" :key="ordine.id" class="bg-white border border-blue-200 rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between h-fit">
                             <div>
                                 <div class="bg-blue-100/60 px-4 py-3 border-b border-blue-200 flex justify-between items-center">
@@ -336,7 +338,7 @@
                         <p class="text-lg font-black text-slate-700">Tutti i tavoli hanno saldato</p>
                     </div>
                     
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div class="flex overflow-x-auto gap-4 pb-2">
                         <div v-for="ordine in ordiniDaPagare" :key="ordine.id" class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 flex flex-col justify-between h-fit">
                             <div>
                                 <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-2">
